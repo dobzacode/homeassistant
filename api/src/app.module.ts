@@ -1,10 +1,26 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+
+import { MongoModule } from './mongo/mongo.module';
+
+import { AppLoggerMiddleware } from './middlewares/logger.middleware';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [MongoModule, ConfigModule.forRoot({ isGlobal: true })],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(AppLoggerMiddleware)
+      .exclude(
+        { path: 'health', method: RequestMethod.GET },
+        { path: 'static/*', method: RequestMethod.GET },
+      )
+      .forRoutes('*');
+  }
+}
